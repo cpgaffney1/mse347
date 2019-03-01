@@ -31,14 +31,19 @@ def q_n(t, theta, Sn):
 
 ###
 
-def Z_T():
+def I_to_CT(I):
     pass
 
-    
-def D_T(    
+def Z_T(theta, Sn, I):
+    #call DT
+    pass
+
+def D_T(I):
+    # mask = int(I != 0)
+    pass
     
 def run_IS_algorithm():
     # generate event times using poisson
     # for each Sm draw Im
-    #
+    # check if its a rare event, if so, generate Z_T and define as Yn
     pass
