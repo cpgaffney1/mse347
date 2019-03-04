@@ -58,10 +58,11 @@ def sample_I():
         M[i, Sm:] = np.ones_like(M[i, Sm:])      
     transitions = np.argmax(M != 0, axis=0)
     print(transitions)
+    #JCS: I believe the return statement below was missing.
+    return event_times, transitions
     
 
-sample_I()
- 
+
 ###
  
 # FDE
@@ -95,18 +96,29 @@ def p_n(t, state_B):
 # JCS
     
 def q_i_n(t, state_b):
-    pass
+    num = p_i_n(t,state_b)
+    denom = p_n(t,state_b)
+    if num == 0 and denom == 0:
+        return 0
+    return (num/denom)*theta
 
-def q_n(t, theta, Sn):
-    pass  
+
+def q_n(t, Sn):
+    if Sn>t:
+        return theta
+    else:
+        return 0
 
 ###
 
 # JCS
-def I_to_CT(I):
-    pass
 
-def Z_T(theta, Sn, I):
+def I_to_CT(I):
+    CT = [np.count_nonzero(I[:i]) for i in range(len(I))]
+    CT = CT[1:]
+    return np.array(CT)
+
+def Z_T(Sn, I):
     # ADS
     #call DT
     pass
@@ -121,4 +133,5 @@ def run_IS_algorithm():
     # generate event times using poisson
     # for each Sm draw Im
     # check if its a rare event, if so, generate Z_T and define as Yn
-    pass
+    S,I = sample_I()
+    return np.mean(Z_T(S,I))
