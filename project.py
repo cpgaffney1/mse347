@@ -27,24 +27,22 @@ def sample_S():
     # event times up to T with rate theta
     event_times = []
     t = 0
-    while True:
+    while len(event_times) < n:
         delta = np.random.exponential(1. / theta)
-        print(delta)
         t += math.ceil(delta)
-        if t > T:
-            break
         event_times.append(t)
-    print(event_times)
     return event_times
 
-def sample_I():
+def sample_I(event_times):
     # CPG
     # call q_i_n and q_n
     # returns T-vector with values between 1 and n. Element is the id of the firm that defaults at that timestep. 0 if no one defaults
-    event_times = sample_S()
+
     M = np.zeros(n, T)
 
     for i, Sm in enumerate(event_times):
+        if Sm > T:
+            break
         if i == 0:
             prev_state = np.zeros_like(M[:, 0])
         else:
@@ -53,9 +51,7 @@ def sample_I():
         transition_idx = np.argmax(np.random.multinomial(1, q))
         M[transition_idx, Sm:] = np.ones_like(M[transition_idx, Sm:])      
     transitions = np.argmax(M != 0, axis=0)
-    print(transitions)
-    #JCS: I believe the return statement below was missing.
-    return event_times, transitions
+    return transitions
 
 
 
@@ -100,7 +96,7 @@ def q_i_n(t, state_b):
 
 
 def q_n(t, state_b):
-    return np.sum(state_b)
+    return np.sum(q_i_n(t, state_b))
 ###
 
 # JCS
@@ -143,12 +139,13 @@ def Z_T(Sn, I):
     #     x = np.log(p_i_n(*Ms_minus(s, M))/q_i_n(*Ms_minus(s, M)))
     #     x -=
     # WHAT IS THE MIN STATEMENT SUPPOSSED TO BE???
-    return np.exp(min(np.min(S), T) * theta - CT * np.log(T * theta) + D_T(I))
+    return np.exp(min(S[-1], T) * theta - CT * np.log(T * theta) + D_T(I))
 
 # JCS
 def run_IS_algorithm():
     # generate event times using poisson
     # for each Sm draw Im
     # check if its a rare event, if so, generate Z_T and define as Yn
-    S,I = sample_I()
+    S = sample_S()
+    I = sample_I(S)
     return np.mean(Z_T(S,I))
