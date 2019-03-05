@@ -1,7 +1,7 @@
 import numpy as np
 import math
 
-T = 5 * 12
+T = 5 * 365
 mu = 0.01
 n = 1000
 
@@ -14,14 +14,10 @@ sigma_tilde = np.random.uniform(0, 0.2, n)
 X_0 = c # Make sure to review if correct.
 
 # Construct sigma array:
-sigma = [0 for x in range(n)]
-for i in range(n):
-    sigma[i] = min(np.sqrt(2 * kappa[i] * c[i]), sigma_tilde[i])
+sigma = [min(np.sqrt(2 * kappa[i] * c[i]), sigma_tilde[i]) for x in range(n)]
 
 # Construct gamma array:
-gamma = [0 for x in range(n)]
-for i in range(n):
-    gamma[i] = np.sqrt(kappa[i]**2 + (2 * sigma[i]**2))
+gamma = [np.sqrt(kappa[i]**2 + (2 * sigma[i]**2)) for i in range(n)]
 
 # Beta:
 beta = np.random.uniform(0, 0.01, (n, n)) / 10.0
