@@ -55,7 +55,7 @@ def sample_I():
             prev_state = M[:, event_times[i-1]]
         q = [q_i_n(Sm, prev_state) / q_n(Sm, prev_state) for _ in range(n)]
         transition_idx = np.argmax(np.random.multinomial(1, q))
-        M[i, Sm:] = np.ones_like(M[i, Sm:])      
+        M[transition_idx, Sm:] = np.ones_like(M[transition_idx, Sm:])      
     transitions = np.argmax(M != 0, axis=0)
     print(transitions)
     
