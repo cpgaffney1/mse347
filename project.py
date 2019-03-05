@@ -99,12 +99,8 @@ def q_i_n(t, state_b):
     return (num/denom)*theta
 
 
-def q_n(t, Sn):
-    if Sn>t:
-        return theta
-    else:
-        return 0
-
+def q_n(t, state_b):
+    return np.sum(state_b)
 ###
 
 # JCS
