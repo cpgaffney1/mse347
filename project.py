@@ -118,11 +118,6 @@ def I_to_CT(I):
     CT = CT[1:]
     return np.array(CT)
 
-def Z_T(Sn, I):
-    # ADS
-    #call DT
-    pass
-
 def I_to_M(I):
     M = np.zeros((n, T))
     for i in range(T):
@@ -130,12 +125,33 @@ def I_to_M(I):
             M[I[i], i:] = 1
     return M
 
+
+def Ms_minus(s, M):
+    s_ = max(0, int(s-1e-6))
+    return s_, M[:, s_]
+
 def D_T(I):
     # ADS
-    # mask = int(I != 0)
     # eqns 26 and 27
-    p_n(t, )
-    pass
+    # WHAT ARE OUR TIME STEPS, MONTHS???
+    delta = 1e-2
+    M = I_to_M(I)
+    D = 0
+    for s in np.argwhere(I != 0):
+        D += np.log(T*p_n(*Ms_minus(s, M)))
+    D -= sum(p(int(s), M[:, int(s)])*delta for s in np.arange(0, T + delta, delta))
+    return D
+
+def Z_T(Sn, I):
+    # ADS
+    Z = 1
+    CT = I_to_CT(I)
+    # for i in range(1, n+1):
+    #     s = np.argwhere(M[i] == 1)[0]
+    #     x = np.log(p_i_n(*Ms_minus(s, M))/q_i_n(*Ms_minus(s, M)))
+    #     x -=
+    # WHAT IS THE MIN STATEMENT SUPPOSSED TO BE???
+    return np.exp(min(np.min(S), T) * theta - CT * np.log(T * theta) + D_T(I))
 
 # JCS
 def run_IS_algorithm():
