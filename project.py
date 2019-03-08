@@ -52,7 +52,7 @@ def sample_I(event_times):
         q = q_i_n(Sm, prev_state) / q_n(Sm, prev_state)
         transition_idx = np.argmax(np.random.multinomial(1, q))
         M[transition_idx, Sm:] = np.ones_like(M[transition_idx, Sm:])
-    
+
     I = np.zeros_like(M[0])
     for i in range(M.shape[0]):
         default_time = np.argmax(M[i])
@@ -70,6 +70,9 @@ def p_i_n(t, Mt):
     #t /= 12.
     p_i_n = np.zeros(n)
     for i in range(n):
+        if Mt[i] == 1:
+            p_i_n[i] = 0.
+            continue
         first_num = 4 * X_0[i] * gamma[i]**2 * np.exp(gamma[i] * t)
         first_denom = (gamma[i] - kappa[i] + (gamma[i] + kappa[i]) * np.exp(gamma[i] * t)) ** 2
         second_num = 2 * kappa[i] * c[i] * (np.exp(gamma[i] * t) - 1)
@@ -78,10 +81,7 @@ def p_i_n(t, Mt):
         for j in range(n):
             if i != j:
                 third += beta[i, j] * Mt[j]
-        if Mt[i] == 1:
-            p_i_n[i] = 0.
-        else:
-            p_i_n[i] = (first_num / first_denom) + (second_num / second_denom) + third
+        p_i_n[i] = (first_num / first_denom) + (second_num / second_denom) + third
     return p_i_n
 
 
@@ -148,7 +148,7 @@ def Z_T(Sn, I):
     #print(CT)
     #print(theta)
     #print(min(S[-1], T))
-    return np.exp(min(S[-1], T) * theta - CT * np.log(T * theta) + D)
+    return np.exp(min(Sn[-1], T) * theta - CT * np.log(T * theta) + D)
 
 # JCS
 # generate event times using poisson
@@ -162,5 +162,3 @@ samples = []
 for _ in range(n_samples):
     samples += [Z_T(S,I)]
 print(samples)
-    
-
