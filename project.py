@@ -2,8 +2,8 @@ import numpy as np
 import math
 
 T = 5 * 12
-mu = 0.01
-n = 1000
+mu = 0.2
+n = 100
 
 theta = 1. / T * math.ceil(mu * n)
 
@@ -11,7 +11,7 @@ theta = 1. / T * math.ceil(mu * n)
 kappa = np.random.uniform(0.5, 1.5, n)
 c = np.random.uniform(0.001, 0.051, n)
 sigma_tilde = np.random.uniform(0, 0.2, n)
-X_0 = c # Make sure to review if correct.
+X_0 = np.array(c) # Make sure to review if correct.
 
 # Construct sigma array:
 sigma = [min(np.sqrt(2 * kappa[i] * c[i]), sigma_tilde[i]) for i in range(n)]
@@ -20,7 +20,7 @@ sigma = [min(np.sqrt(2 * kappa[i] * c[i]), sigma_tilde[i]) for i in range(n)]
 gamma = [np.sqrt(kappa[i]**2 + (2 * sigma[i]**2)) for i in range(n)]
 
 # Beta:
-beta = np.random.uniform(0, 0.01, (n, n)) / 10.
+beta = np.random.uniform(0, 0.01, (n, n)) / 10. # TODO IS THIS LEGIT?
 
 def sample_S():
     # CPG
@@ -66,6 +66,7 @@ def sample_I(event_times):
 
 # Create an array, of size n (number of firms):
 def p_i_n(t, Mt):
+    #Mt = np.random.randint(0, 1, 100)
     #t /= 12.
     p_i_n = np.zeros(n)
     for i in range(n):
@@ -77,7 +78,10 @@ def p_i_n(t, Mt):
         for j in range(n):
             if i != j:
                 third += beta[i, j] * Mt[j]
-        p_i_n[i] = (first_num / first_denom) + (second_num / second_denom) + third
+        if Mt[i] == 1:
+            p_i_n[i] = 0.
+        else:
+            p_i_n[i] = (first_num / first_denom) + (second_num / second_denom) + third
     return p_i_n
 
 
@@ -87,8 +91,6 @@ def p_i_n(t, Mt):
 # Sum of individual p_i_n (at a given time-step):
 def p_n(t, state_B):
     probs = p_i_n(t, state_B)
-    #print(probs)
-    print(np.sum(probs))
     return np.sum(probs)
 
 # JCS
@@ -130,7 +132,6 @@ def D_T(I):
     # WHAT ARE OUR TIME STEPS, MONTHS???
     delta = 0.5
     M = I_to_M(I)
-    print(M)
     D = 0
     for s in np.argwhere(I != 0):
         D += np.log(T*p_n(*Ms_minus(s, M)))
