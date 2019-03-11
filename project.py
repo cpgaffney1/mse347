@@ -56,7 +56,7 @@ def monte_carlo_sample():
 def sample_S():
     # CPG
     # event times up to T with rate theta
-    print('Sampling S')
+    #print('Sampling S')
     event_times = []
     t = 0
     while len(event_times) < n:
@@ -71,11 +71,11 @@ def sample_I(event_times):
     # returns T-vector with values between 1 and n. Element is the id of the firm that defaults at that timestep. 0 if no one defaults
 
     M = np.zeros((n, timesteps))
-    print('Sampling I')
+    #print('Sampling I')
     for i, Sm in enumerate(event_times):
         if Sm > timesteps:
             break
-        print((i, Sm))
+        #print((i, Sm))
         if i == 0:
             prev_state = np.zeros_like(M[:, 0])
         else:
@@ -162,31 +162,21 @@ def D_T(I):
     # ADS
     # eqns 26 and 27
     # WHAT ARE OUR TIME STEPS, MONTHS???
-    delta = 0.5
+    delta = 1
     M = I_to_M(I)
     D = 0
-    print(np.squeeze(np.argwhere(I != 0)))
-    for s in np.squeeze(np.argwhere(I != 0)):
+    for s in np.squeeze(np.argwhere(I != 0),axis=1):
         D += np.log(timesteps*p_n(*Ms_minus(s, M)))
-    print(D)
-    print([p_n(int(s), M[:, int(s)])*delta for s in np.arange(0, timesteps, delta)])
-    print(sum(p_n(int(s), M[:, int(s)])*delta for s in np.arange(0, timesteps, delta)))
     D -= sum(p_n(int(s), M[:, int(s)])*delta for s in np.arange(0, timesteps, delta))
     return D
 
 def Z_T(Sn, I):
-    print('Computing Z_T')
+    #print('Computing Z_T')
     # ADS
     Z = 1
     CT = I_to_CT(I)
     D = D_T(I)
-    print(CT)
-    print(theta)
-    print(min(Sn[-1], timesteps))
-    print(min(Sn[-1], timesteps) * theta)
-    print(- CT * np.log(timesteps * theta))
-    print(D)
-    return np.exp(min(Sn[-1], timesteps) * theta - CT * np.log(timesteps * theta) + D)
+    return CT, np.exp(min(Sn[-1], timesteps) * theta - CT * np.log(timesteps * theta) + D)
 
 # JCS
 # generate event times using poisson
@@ -199,13 +189,24 @@ for _ in tqdm(range(500)):
 distr = [np.mean(np.array(samples) >= cutoff) for cutoff in range(0, 20)]
 print(distr)
     
-exit()    
 
 
-n_samples = 1
+n_samples = 100
 samples = []
-for _ in range(n_samples):
-    S = sample_S()
-    I = sample_I(S)
-    samples += [Z_T(S,I)]
-print(samples)
+counts = []
+mu_ct = []
+mu_zt = []
+for i in tqdm(range(20)):
+    mu = 0.01 * (i+1)
+    for _ in range(n_samples):
+        S = sample_S()
+        I = sample_I(S)
+        ct, z = Z_T(S,I)
+        samples += [z]
+        counts += [ct]
+    print(np.mean(samples))
+    print(len(np.argwhere(counts>=np.array((mu*n))))/n_samples)
+    mu_ct += [len(np.argwhere(counts>=np.array((mu*n))))/n_samples]
+    mu_zt += [np.mean(samples)]
+print(mu_ct)
+print(mu_zt)
