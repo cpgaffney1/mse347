@@ -8,7 +8,7 @@ timesteps = T * discretization
 mu = 0.01
 n = 100
 
-theta = 1. / ((1. / timesteps) * math.ceil(mu * n))
+#theta = (1. / timesteps) * math.ceil(mu * n)
 
 # Parameters for calculation of p_i_n: Note that c is defined as theta in the paper cited by KG >:(
 kappa = np.random.uniform(0.5, 1.5, n)/4.
@@ -17,13 +17,13 @@ sigma_tilde = np.random.uniform(0, 0.2, n)
 X_0 = np.array(c) # Make sure to review if correct.
 
 # Construct sigma array:
-sigma = [min(np.sqrt(2 * kappa[i] * c[i]), sigma_tilde[i])/np.sqrt(4.) for i in range(n)]
+sigma = [min(np.sqrt(2 * kappa[i] * c[i]), sigma_tilde[i]) for i in range(n)]
 
 # Construct gamma array:
 gamma = [np.sqrt(kappa[i]**2 + (2 * sigma[i]**2)) for i in range(n)]
 
 # Beta:
-beta = np.random.uniform(0, 0.01, (n, n)) / 10. # TODO IS THIS LEGIT?
+beta = np.random.uniform(0, 0.01, (n, n)) / 1. # TODO IS THIS LEGIT?
 
 def monte_carlo_sample():
     def cond_surv_fn(t_start, t_end):
@@ -53,7 +53,7 @@ def monte_carlo_sample():
     return len(event_times)
     
 
-def sample_S():
+def sample_S(theta):
     # CPG
     # event times up to T with rate theta
     #print('Sampling S')
@@ -65,7 +65,7 @@ def sample_S():
         event_times.append(t)
     return event_times
 
-def sample_I(event_times):
+def sample_I(event_times, theta):
     # CPG
     # call q_i_n and q_n
     # returns T-vector with values between 1 and n. Element is the id of the firm that defaults at that timestep. 0 if no one defaults
@@ -80,7 +80,7 @@ def sample_I(event_times):
             prev_state = np.zeros_like(M[:, 0])
         else:
             prev_state = M[:, event_times[i-1]]
-        q = q_i_n(Sm, prev_state) / q_n(Sm, prev_state)
+        q = q_i_n(Sm, prev_state, theta) / q_n(Sm, prev_state, theta)
         transition_idx = np.argmax(np.random.multinomial(1, q))
         M[transition_idx, Sm:] = np.ones_like(M[transition_idx, Sm:])
 
@@ -107,7 +107,9 @@ def p_i_n(t, Mt):
         first_num = 4 * X_0[i] * gamma[i]**2 * np.exp(gamma[i] * t)
         first_denom = (gamma[i] - kappa[i] + (gamma[i] + kappa[i]) * np.exp(gamma[i] * t)) ** 2
         second_num = 2 * kappa[i] * c[i] * (np.exp(gamma[i] * t) - 1)
+        #second_num = - c[i] * kappa[i] * (kappa[i] ** 2 - gamma[i] ** 2) * (np.exp(gamma[i] * t) - 1)
         second_denom = gamma[i] - kappa[i] + (gamma[i] + kappa[i]) * np.exp(gamma[i] * t)
+        #second_denom = sigma[i] ** 2 * (gamma[i] - kappa[i] + (gamma[i] + kappa[i]) * np.exp(gamma[i] * t))
         third = 0.
         for j in range(n):
             if i != j:
@@ -127,7 +129,7 @@ def p_n(t, state_B):
 
 # JCS
 
-def q_i_n(t, state_b):
+def q_i_n(t, state_b, theta):
     num = p_i_n(t,state_b)
     denom = p_n(t,state_b)
     if denom == 0:
@@ -136,8 +138,8 @@ def q_i_n(t, state_b):
         return num / denom * theta
 
 
-def q_n(t, state_b):
-    return np.sum(q_i_n(t, state_b))
+def q_n(t, state_b, theta):
+    return np.sum(q_i_n(t, state_b, theta))
 ###
 
 # JCS
@@ -165,18 +167,18 @@ def D_T(I):
     delta = 1
     M = I_to_M(I)
     D = 0
-    for s in np.squeeze(np.argwhere(I != 0),axis=1):
+    for s in np.squeeze(np.argwhere(I != 0), axis=1):
         D += np.log(timesteps*p_n(*Ms_minus(s, M)))
     D -= sum(p_n(int(s), M[:, int(s)])*delta for s in np.arange(0, timesteps, delta))
     return D
 
-def Z_T(Sn, I):
+def Z_T(Sn, I, theta):
     #print('Computing Z_T')
     # ADS
     Z = 1
     CT = I_to_CT(I)
     D = D_T(I)
-    return np.exp(timesteps * theta - CT * np.log(timesteps * theta) + D)
+    return CT, np.exp(timesteps * theta - CT * np.log(timesteps * theta) + D)
 
 # JCS
 # generate event times using poisson
@@ -199,26 +201,31 @@ samples = []
 for _ in range(n_samples):
     S = sample_S()
     I = sample_I(S)
-    samples += [1. / Z_T(S,I)]
+    samples += [Z_T(S,I)]
 print(samples)
 '''
 
+
 n_samples = 100
-samples = []
-counts = []
 mu_ct = []
 mu_zt = []
 for i in tqdm(range(20)):
     mu = 0.01 * (i+1)
+    samples = []
+    counts = []
+    theta = (1. / timesteps) * math.ceil(mu * n)
     for _ in range(n_samples):
-        S = sample_S()
-        I = sample_I(S)
-        ct, z = Z_T(S,I)
+        S = sample_S(theta)
+        I = sample_I(S, theta)
+        ct, z = Z_T(S,I,theta)
         samples += [z]
         counts += [ct]
+    counts = np.array(counts)
+    samples = np.array(samples)
     print(np.mean(samples))
     print(len(np.argwhere(counts>=np.array((mu*n))))/n_samples)
     mu_ct += [len(np.argwhere(counts>=np.array((mu*n))))/n_samples]
     mu_zt += [np.mean(samples)]
 print(mu_ct)
 print(mu_zt)
+
