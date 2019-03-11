@@ -1,28 +1,57 @@
 import numpy as np
 import math
+from tqdm import tqdm
 
 discretization = 12
 T = 1
 timesteps = T * discretization
-mu = 0.2
+mu = 0.01
 n = 100
 
 theta = (1. / timesteps) * math.ceil(mu * n)
 
 # Parameters for calculation of p_i_n: Note that c is defined as theta in the paper cited by KG >:(
-kappa = np.random.uniform(0.5, 1.5, n) / 4.
-c = np.random.uniform(0.001, 0.051, n) / 4. # Note: this adjusts the units of time for c from quarters to months
+kappa = np.random.uniform(0.5, 1.5, n)/4.
+c = np.random.uniform(0.001, 0.051, n)/4.# Note: this adjusts the units of time for c from quarters to months
 sigma_tilde = np.random.uniform(0, 0.2, n)
 X_0 = np.array(c) # Make sure to review if correct.
 
 # Construct sigma array:
-sigma = [min(np.sqrt(2 * kappa[i] * c[i]), sigma_tilde[i]) / np.sqrt(4.) for i in range(n)]
+sigma = [min(np.sqrt(2 * kappa[i] * c[i]), sigma_tilde[i])/np.sqrt(4.) for i in range(n)]
 
 # Construct gamma array:
 gamma = [np.sqrt(kappa[i]**2 + (2 * sigma[i]**2)) for i in range(n)]
 
 # Beta:
 beta = np.random.uniform(0, 0.01, (n, n)) / 10. # TODO IS THIS LEGIT?
+
+def monte_carlo_sample():
+    def cond_surv_fn(t_start, t_end):
+        #print((t_start, t_end))
+        return np.exp(-sum(p_n(t, M[:, t]) for t in range(t_start, t_end+1)))
+    
+    def invert_cond_surv_fn(t_prev, u):
+        cdf = 0.
+        for s in np.arange(1, timesteps - t_prev):
+            #print(s)
+            cdf += cond_surv_fn(t_prev, t_prev + s)
+            #print(cdf)
+            if cdf > u:
+                return s
+    
+    M = np.zeros((n, timesteps))
+    t_prev = 0
+    event_times = []
+    while t_prev < timesteps:
+        u = np.random.rand()
+        inter_arrival = invert_cond_surv_fn(t_prev, u)
+        if inter_arrival is None:
+            break
+        t_prev += inter_arrival
+        event_times += [t_prev]
+    
+    return len(event_times)
+    
 
 def sample_S():
     # CPG
@@ -163,6 +192,14 @@ def Z_T(Sn, I):
 # generate event times using poisson
 # for each Sm draw Im
 # check if its a rare event, if so, generate Z_T and define as Yn
+
+samples = []
+for _ in tqdm(range(500)):
+    samples += [monte_carlo_sample()]
+distr = [np.mean(np.array(samples) >= cutoff) for cutoff in range(0, 20)]
+print(distr)
+    
+exit()    
 
 
 n_samples = 1
