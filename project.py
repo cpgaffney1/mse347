@@ -8,7 +8,7 @@ timesteps = T * discretization
 mu = 0.01
 n = 100
 
-theta = (1. / timesteps) * math.ceil(mu * n)
+theta = 1. / ((1. / timesteps) * math.ceil(mu * n))
 
 # Parameters for calculation of p_i_n: Note that c is defined as theta in the paper cited by KG >:(
 kappa = np.random.uniform(0.5, 1.5, n)/4.
@@ -165,12 +165,8 @@ def D_T(I):
     delta = 0.5
     M = I_to_M(I)
     D = 0
-    print(np.squeeze(np.argwhere(I != 0)))
     for s in np.squeeze(np.argwhere(I != 0)):
         D += np.log(timesteps*p_n(*Ms_minus(s, M)))
-    print(D)
-    print([p_n(int(s), M[:, int(s)])*delta for s in np.arange(0, timesteps, delta)])
-    print(sum(p_n(int(s), M[:, int(s)])*delta for s in np.arange(0, timesteps, delta)))
     D -= sum(p_n(int(s), M[:, int(s)])*delta for s in np.arange(0, timesteps, delta))
     return D
 
@@ -180,32 +176,29 @@ def Z_T(Sn, I):
     Z = 1
     CT = I_to_CT(I)
     D = D_T(I)
-    print(CT)
-    print(theta)
-    print(min(Sn[-1], timesteps))
-    print(min(Sn[-1], timesteps) * theta)
-    print(- CT * np.log(timesteps * theta))
-    print(D)
-    return np.exp(min(Sn[-1], timesteps) * theta - CT * np.log(timesteps * theta) + D)
+    return np.exp(timesteps * theta - CT * np.log(timesteps * theta) + D)
 
 # JCS
 # generate event times using poisson
 # for each Sm draw Im
 # check if its a rare event, if so, generate Z_T and define as Yn
 
+'''
 samples = []
-for _ in tqdm(range(500)):
+for _ in tqdm(range(100)):
     samples += [monte_carlo_sample()]
 distr = [np.mean(np.array(samples) >= cutoff) for cutoff in range(0, 20)]
 print(distr)
     
-exit()    
+exit() 
+'''
+ 
 
 
-n_samples = 1
+n_samples = 10
 samples = []
 for _ in range(n_samples):
     S = sample_S()
     I = sample_I(S)
-    samples += [Z_T(S,I)]
+    samples += [1. / Z_T(S,I)]
 print(samples)
