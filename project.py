@@ -6,12 +6,12 @@ T = 1
 n = 100 # unopt time/it > 3 sec
 
 #p = np.zeros((n, timesteps))
-np.random.seed(42)
+np.random.seed(123)
 
 
 # Parameters for calculation of p_i_n: Note that c is defined as theta in the paper cited by KG >:(
 kappa = np.random.uniform(0.5, 1.5, n)
-c = np.random.uniform(0.001, 0.051, n) / 6 # Note: this adjusts the units of time for c from quarters to months
+c = np.random.uniform(0.001, 0.051, n) / 10.  # Note: this adjusts the units of time for c from quarters to months
 sigma_tilde = np.random.uniform(0, 0.2, n)
 X_0 = np.array(c) # Make sure to review if correct.
 
@@ -197,31 +197,31 @@ for _ in range(n_samples):
     samples += [Z_T(S,I)]
 print(samples)
 '''
+if __name__ == '__main__':
+    n_samples = 100
+    mu_ct = []
+    mu_zt = []
+    VaR = []
+    variance_is = []
+    for mu in tqdm(np.arange(0.01, 0.21, 0.01)):
+        cutoff = mu * n
+        samples = []
+        counts = []
+        theta = (1. / T) * cutoff
+        for _ in range(n_samples):
+            ct, z = sample_Z(theta)
+            z = z * (ct >= cutoff)
+            samples += [z]
+            counts += [ct]
+        counts = np.array(counts)
+        samples = np.array(samples)
+        mu_ct += [float(np.count_nonzero(counts >= cutoff)) / n_samples]
+        mu_zt += [np.mean(samples)]
+        VaR += [np.quantile(samples,0.975)]
+        variance_is += [np.var(samples)]
 
-n_samples = 100
-mu_ct = []
-mu_zt = []
-VaR = []
-variance_is = []
-for mu in tqdm(np.arange(0.01, 0.21, 0.01)):
-    cutoff = mu * n
-    samples = []
-    counts = []
-    theta = (1. / T) * cutoff
-    for _ in range(n_samples):
-        ct, z = sample_Z(theta)
-        z = z * (ct >= cutoff)
-        samples += [z]
-        counts += [ct]
-    counts = np.array(counts)
-    samples = np.array(samples)
-    mu_ct += [float(np.count_nonzero(counts >= cutoff)) / n_samples]
-    mu_zt += [np.mean(samples)]
-    VaR += [np.quantile(samples,0.975)]
-    variance_is += [np.var(samples)]
-
-print("mu_ct = {}".format(mu_ct))
-print("mu_zt = {}".format(mu_zt))
-print("VaR = {}".format(VaR))
-variance_reduction = variance_mc/variance_is
-print(variance_reduction)
+    print("mu_ct = {}".format(mu_ct))
+    print("mu_zt = {}".format(mu_zt))
+    print("VaR = {}".format(VaR))
+    variance_reduction = variance_mc/variance_is
+    print(variance_reduction)
