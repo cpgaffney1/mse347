@@ -2,6 +2,39 @@ import numpy as np
 import math
 from tqdm import tqdm
 
+discretization = 1
+T = 1
+timesteps = T * discretization
+mu = 0.01
+n = 100 # unopt time/it > 3 sec
+
+p = np.zeros((n, timesteps))
+
+
+#theta = (1. / timesteps) * math.ceil(mu * n)
+
+# Parameters for calculation of p_i_n: Note that c is defined as theta in the paper cited by KG >:(
+kappa = np.random.uniform(0.5, 1.5, n) / 3.0
+c = np.random.uniform(0.001, 0.051, n) / 3.0 # Note: this adjusts the units of time for c from quarters to months
+sigma_tilde = np.random.uniform(0, 0.2, n)
+X_0 = np.array(c) # Make sure to review if correct.
+
+# Construct sigma array:
+sigma = np.array([min(np.sqrt(2 * kappa[i] * c[i]), sigma_tilde[i]) for i in range(n)])
+
+# Construct gamma array:
+gamma = np.array([np.sqrt(kappa[i]**2 + (2 * sigma[i]**2)) for i in range(n)])
+
+# Beta:
+beta = np.random.uniform(0, 0.01, (n, n)) / 10.0 # TODO IS THIS LEGIT?
+idx = np.arange(n)
+beta[idx, idx] = np.zeros_like(idx)
+
+first_num = np.array([4 * X_0 * gamma**2 * np.exp(gamma * t) for t in range(timesteps)]).T
+first_denom = np.array([(gamma - kappa + (gamma + kappa) * np.exp(gamma * t)) ** 2 for t in range(timesteps)]).T
+second_num = np.array([2 * kappa * c * (np.exp(gamma * t) - 1) for t in range(timesteps)]).T
+second_denom = np.array([gamma - kappa + (gamma + kappa) * np.exp(gamma * t) for t in range(timesteps)]).T
+
 def monte_carlo_sample():
     def cond_surv_fn(t_start, t_end):
         #print((t_start, t_end))
@@ -77,14 +110,8 @@ def p_i_n(t, Mt, cached=False):
     #Mt = np.random.randint(0, 1, 100)
     #t /= 12.
     p_i_n = np.zeros(n)
-    
-    first_num = 4 * X_0 * gamma**2 * np.exp(gamma * t)
-    first_denom = (gamma - kappa + (gamma + kappa) * np.exp(gamma * t)) ** 2
-    second_num = 2 * kappa * c * (np.exp(gamma * t) - 1)
-    second_denom = gamma - kappa + (gamma + kappa) * np.exp(gamma * t)
     third = np.matmul(beta, Mt)
-    
-    p_i_n = (first_num / first_denom) + (second_num / second_denom) + third
+    p_i_n = (first_num[:,t] / first_denom[:,t]) + (second_num[:,t] / second_denom[:,t]) + third
     p_i_n[np.array_equal(Mt, np.ones(n))] = 0.
     
     '''
@@ -207,35 +234,7 @@ for _ in range(n_samples):
 print(samples)
 '''
 
-discretization = 1
-T = 1
-timesteps = T * discretization
-mu = 0.01
-n = 1000 # unopt time/it > 3 sec
-
-p = np.zeros((n, timesteps))
-
-
-#theta = (1. / timesteps) * math.ceil(mu * n)
-
-# Parameters for calculation of p_i_n: Note that c is defined as theta in the paper cited by KG >:(
-kappa = np.random.uniform(0.5, 1.5, n) / 3.0
-c = np.random.uniform(0.001, 0.051, n) / 3.0 # Note: this adjusts the units of time for c from quarters to months
-sigma_tilde = np.random.uniform(0, 0.2, n)
-X_0 = np.array(c) # Make sure to review if correct.
-
-# Construct sigma array:
-sigma = np.array([min(np.sqrt(2 * kappa[i] * c[i]), sigma_tilde[i]) for i in range(n)])
-
-# Construct gamma array:
-gamma = np.array([np.sqrt(kappa[i]**2 + (2 * sigma[i]**2)) for i in range(n)])
-
-# Beta:
-beta = np.random.uniform(0, 0.01, (n, n)) / 10.0 # TODO IS THIS LEGIT?
-idx = np.arange(n)
-beta[idx, idx] = np.zeros_like(idx)
-
-n_samples = 100 
+n_samples = 100
 mu_ct = []
 mu_zt = []
 for i in tqdm(range(20)):
@@ -245,13 +244,12 @@ for i in tqdm(range(20)):
     theta = (1. / timesteps) * math.ceil(mu * n)
     for _ in range(n_samples):
         ct, z = sample_Z(theta)
+        z = 1.0 / (z * T**2)
         samples += [z]
         counts += [ct]
     counts = np.array(counts)
     samples = np.array(samples)
-    print(1.0 / (np.mean(samples) * T))
-    #print(len(np.argwhere(counts>=np.array((mu*n))))/n_samples)
-    mu_ct += [len(np.argwhere(counts>=np.array((mu*n))))/n_samples]
-    mu_zt += [1.0 / (np.mean(samples) * T)]
+    mu_ct += [float(len(counts >= mu * n)) / n_samples]
+    mu_zt += [np.mean(samples)]
 print(mu_ct)
 print(mu_zt)
