@@ -1,17 +1,15 @@
 import numpy as np
 import math
-from tqdm import tqdm
 
-T = 1
+T = 5
 n = 100 # unopt time/it > 3 sec
 
 #p = np.zeros((n, timesteps))
-np.random.seed(42)
-
+np.random.seed(123)
 
 # Parameters for calculation of p_i_n: Note that c is defined as theta in the paper cited by KG >:(
 kappa = np.random.uniform(0.5, 1.5, n)
-c = np.random.uniform(0.001, 0.051, n) / 6 # Note: this adjusts the units of time for c from quarters to months
+c = np.random.uniform(0.001, 0.051, n) / 6.0 # Note: this adjusts the units of time for c from quarters to months
 sigma_tilde = np.random.uniform(0, 0.2, n)
 X_0 = np.array(c) # Make sure to review if correct.
 
@@ -108,7 +106,7 @@ def p_i_n(t, Mt, cached=False):
     p_i_n = np.zeros(n)
     third = np.matmul(beta, Mt)
     first_num = 4 * X_0 * gamma**2 * np.exp(gamma * t)
-    first_denom = gamma - kappa + (gamma + kappa) * np.exp(gamma * t) ** 2
+    first_denom = (gamma - kappa + (gamma + kappa) * np.exp(gamma * t)) ** 2
     second_num = 2 * kappa * c * (np.exp(gamma * t) - 1)
     second_denom = gamma - kappa + (gamma + kappa) * np.exp(gamma * t)
 
@@ -120,16 +118,13 @@ def p_i_n(t, Mt, cached=False):
     return p_i_n
 
 
-# In[23]:
 def generate_Mt(t, I):
     return (I <= t).astype('float')
-
 
 # Sum of individual p_i_n (at a given time-step):
 def p_n(t, state_B, theta, cached=False):
     rates = p_i_n(t, state_B, cached=cached)
     res = np.sum(rates)
-    assert(res < theta)
     return res
 
 # JCS
@@ -187,7 +182,6 @@ for _ in tqdm(range(1000)):
 variance_mc = [np.var(np.array(samples) >= cutoff) for cutoff in range(0, 20)]
 distr = [np.mean(np.array(samples) >= cutoff) for cutoff in range(0, 20)]
 print(distr)
-
 exit()'''
 
 '''
@@ -205,7 +199,7 @@ mu_ct = []
 mu_zt = []
 VaR = []
 variance_is = []
-for mu in tqdm(np.arange(0.01, 0.21, 0.01)):
+for mu in np.arange(0.01, 0.21, 0.01):
     cutoff = mu * n
     samples = []
     counts = []
