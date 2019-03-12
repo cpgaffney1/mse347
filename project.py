@@ -2,6 +2,8 @@ import numpy as np
 import math
 from tqdm import tqdm
 
+np.random.seed(113)
+
 T = 1
 n = 100 # unopt time/it > 3 sec
 
@@ -147,17 +149,13 @@ def q_n(t, state_b, theta):
 # JCS
 
 def D_T(I, Sm): # We assume I is sorted in increasing default times.
-    def prev_time(s, I):
-        I[I >= s] = float(0)
-        return np.max(I)
-    M = generate_Mt(T, I)
-    D = 0
+    D = np.log(T * p_n(0, generate_Mt(0, I), cached=True))
     for i, _ in enumerate(Sm):
         if i != 0:
             s_ = Sm[i - 1]
             Ms_ = generate_Mt(s_, I)
-            D += np.log(T * p_n(s_, Ms_, cached = True))
-    D -= sum(p_n(Sm[i], generate_Mt(Sm[i], I), True) * (Sm[i] - Sm[i - 1]) for i in range(1, len(Sm)) if Sm[i] < T)
+            D += np.log(T * p_n(s_, Ms_, cached=True))
+    D -= sum(p_n(Sm[i], generate_Mt(Sm[i], I), cached=True) * (Sm[i] - Sm[i - 1]) for i in range(1, len(Sm)) if Sm[i] < T)
     return D
 
 
@@ -165,7 +163,6 @@ def Z_T(I, Sm, theta): # We assume I is sorted in increasing default times.
     Z = 1
     CT = np.sum(generate_Mt(T, I))
     D = D_T(I, Sm)
-    print(D)
     return CT, np.exp(T * theta - CT * np.log(T * theta) + D)
 
 # JCS
