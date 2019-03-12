@@ -6,11 +6,12 @@ T = 1
 n = 100 # unopt time/it > 3 sec
 
 #p = np.zeros((n, timesteps))
+np.random.seed(42)
 
 
 # Parameters for calculation of p_i_n: Note that c is defined as theta in the paper cited by KG >:(
 kappa = np.random.uniform(0.5, 1.5, n)
-c = np.random.uniform(0.001, 0.051, n) # Note: this adjusts the units of time for c from quarters to months
+c = np.random.uniform(0.001, 0.051, n) / 6 # Note: this adjusts the units of time for c from quarters to months
 sigma_tilde = np.random.uniform(0, 0.2, n)
 X_0 = np.array(c) # Make sure to review if correct.
 
@@ -125,16 +126,17 @@ def generate_Mt(t, I):
 
 
 # Sum of individual p_i_n (at a given time-step):
-def p_n(t, state_B, cached=False):
-    rates = p_i_n(t, state_B)
-    #print(np.sum(rates))
-    return np.sum(rates)
+def p_n(t, state_B, theta, cached=False):
+    rates = p_i_n(t, state_B, cached=cached)
+    res = np.sum(rates)
+    assert(res < theta)
+    return res
 
 # JCS
 
 def q_i_n(t, state_b, theta):
     num = p_i_n(t,state_b)
-    denom = p_n(t,state_b)
+    denom = p_n(t,state_b, theta)
     if denom == 0:
         return num
     else:
@@ -147,21 +149,21 @@ def q_n(t, state_b, theta):
 
 # JCS
 
-def D_T(I, Sm): # We assume I is sorted in increasing default times.
+def D_T(I, Sm, theta): # We assume I is sorted in increasing default times.
     delta = 0.01
-    D = np.log(T * p_n(0, generate_Mt(0, I), cached=True))
+    D = np.log(T * p_n(0, generate_Mt(0, I), theta, cached=True))
     for i in range(len(Sm)):
         if i != 0:
             s_ = Sm[i - 1]
             Ms_ = generate_Mt(s_, I)
-            D += np.log(T * p_n(s_, Ms_, cached=True))
-    D -= sum(p_n(s, generate_Mt(s, I), cached=True) * delta for s in np.arange(0, T + delta, delta))
+            D += np.log(T * p_n(s_, Ms_, theta, cached=True))
+    D -= sum(p_n(s, generate_Mt(s, I), theta, cached=True) * delta for s in np.arange(0, T + delta, delta))
     return D
 
 
 def Z_T(I, Sm, theta): # We assume I is sorted in increasing default times.
     CT = np.sum(generate_Mt(T, I))
-    D = D_T(I, Sm)
+    D = D_T(I, Sm, theta)
     return CT, np.exp(T * theta - (CT * np.log(T * theta)) + D)
 
 # JCS
