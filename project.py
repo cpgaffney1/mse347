@@ -2,8 +2,6 @@ import numpy as np
 import math
 from tqdm import tqdm
 
-np.random.seed(113)
-
 T = 1
 n = 100 # unopt time/it > 3 sec
 
@@ -37,7 +35,7 @@ beta[idx, idx] = np.zeros_like(idx)
 def monte_carlo_sample():
     def cond_surv_fn(t_start, t_end):
         return np.exp(-sum(p_n(t, M[:, t]) for t in range(t_start, t_end+1)))
-    
+
     def invert_cond_surv_fn(t_prev, u):
         cdf = 0.
         for s in np.arange(1, timesteps - t_prev):
@@ -46,7 +44,7 @@ def monte_carlo_sample():
             #print(cdf)
             if cdf > u:
                 return s
-    
+
     M = np.zeros((n, timesteps))
     t_prev = 0
     event_times = []
@@ -57,9 +55,9 @@ def monte_carlo_sample():
             break
         t_prev += inter_arrival
         event_times += [t_prev]
-    
+
     return len(event_times)
-    
+
 
 def sample_S(theta):
     # CPG
@@ -88,7 +86,8 @@ def sample_I(event_times, theta):
             prev_state = np.zeros(n)
         else:
             prev_state = generate_Mt(event_times[i-1], I)
-        q = q_i_n(Sm, prev_state, theta) / q_n(Sm, prev_state, theta)
+        q_i = q_i_n(Sm, prev_state, theta)
+        q = q_i / np.sum(q_i)
         transition_idx = np.argmax(np.random.multinomial(1, q))
         I[transition_idx] = Sm
     return I
@@ -111,11 +110,11 @@ def p_i_n(t, Mt, cached=False):
     first_denom = gamma - kappa + (gamma + kappa) * np.exp(gamma * t) ** 2
     second_num = 2 * kappa * c * (np.exp(gamma * t) - 1)
     second_denom = gamma - kappa + (gamma + kappa) * np.exp(gamma * t)
-    
+
     #p_i_n = (first_num[:,t] / first_denom[:,t]) + (second_num[:,t] / second_denom[:,t]) + third
     p_i_n = (first_num / first_denom) + (second_num / second_denom) + third
     p_i_n[np.array_equal(Mt, np.ones(n))] = 0.
-    
+
     #p_n_mat[:, t] = np.array(p_i_n)
     return p_i_n
 
@@ -149,21 +148,21 @@ def q_n(t, state_b, theta):
 # JCS
 
 def D_T(I, Sm): # We assume I is sorted in increasing default times.
+    delta = 0.01
     D = np.log(T * p_n(0, generate_Mt(0, I), cached=True))
-    for i, _ in enumerate(Sm):
+    for i in range(len(Sm)):
         if i != 0:
             s_ = Sm[i - 1]
             Ms_ = generate_Mt(s_, I)
             D += np.log(T * p_n(s_, Ms_, cached=True))
-    D -= sum(p_n(Sm[i], generate_Mt(Sm[i], I), cached=True) * (Sm[i] - Sm[i - 1]) for i in range(1, len(Sm)) if Sm[i] < T)
+    D -= sum(p_n(s, generate_Mt(s, I), cached=True) * delta for s in np.arange(0, T + delta, delta))
     return D
 
 
 def Z_T(I, Sm, theta): # We assume I is sorted in increasing default times.
-    Z = 1
     CT = np.sum(generate_Mt(T, I))
     D = D_T(I, Sm)
-    return CT, np.exp(T * theta - CT * np.log(T * theta) + D)
+    return CT, np.exp(T * theta - (CT * np.log(T * theta)) + D)
 
 # JCS
 # generate event times using poisson
@@ -186,7 +185,7 @@ for _ in tqdm(range(1000)):
 variance_mc = [np.var(np.array(samples) >= cutoff) for cutoff in range(0, 20)]
 distr = [np.mean(np.array(samples) >= cutoff) for cutoff in range(0, 20)]
 print(distr)
-    
+
 exit()'''
 
 '''
@@ -204,25 +203,25 @@ mu_ct = []
 mu_zt = []
 VaR = []
 variance_is = []
-for idx in tqdm(range(1, 10 + 1)):
-    i = idx * n / 100
+for mu in tqdm(np.arange(0.01, 0.21, 0.01)):
+    cutoff = mu * n
     samples = []
     counts = []
-    theta = (1. / T) * i
+    theta = (1. / T) * cutoff
     for _ in range(n_samples):
         ct, z = sample_Z(theta)
-        z = z * (ct >= i)
+        z = z * (ct >= cutoff)
         samples += [z]
         counts += [ct]
     counts = np.array(counts)
     samples = np.array(samples)
-    mu_ct += [float(np.count_nonzero(counts >= i)) / n_samples]
+    mu_ct += [float(np.count_nonzero(counts >= cutoff)) / n_samples]
     mu_zt += [np.mean(samples)]
     VaR += [np.quantile(samples,0.975)]
     variance_is += [np.var(samples)]
-    
-print(mu_ct)
-print(mu_zt)
-print(VaR)
+
+print("mu_ct = {}".format(mu_ct))
+print("mu_zt = {}".format(mu_zt))
+print("VaR = {}".format(VaR))
 variance_reduction = variance_mc/variance_is
 print(variance_reduction)
