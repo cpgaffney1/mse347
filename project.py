@@ -77,6 +77,18 @@ def p_i_n(t, Mt, cached=False):
     #Mt = np.random.randint(0, 1, 100)
     #t /= 12.
     p_i_n = np.zeros(n)
+    
+    first_num = 4 * X_0 * gamma**2 * np.exp(gamma * t)
+    first_denom = (gamma - kappa + (gamma + kappa) * np.exp(gamma * t)) ** 2
+    second_num = 2 * kappa * c * (np.exp(gamma * t) - 1)
+    second_denom = gamma - kappa + (gamma + kappa) * np.exp(gamma * t)
+    third = np.matmul(beta, Mt)
+    
+    p_i_n = (first_num / first_denom) + (second_num / second_denom) + third
+    p_i_n[np.array_equal(Mt, np.ones(n))] = 0.
+    
+    '''
+    
     for i in range(n):
         if Mt[i] == 1:
             p_i_n[i] = 0.
@@ -92,6 +104,8 @@ def p_i_n(t, Mt, cached=False):
             if i != j:
                 third += beta[i, j] * Mt[j]
         p_i_n[i] = (first_num / first_denom) + (second_num / second_denom) + third
+    
+    '''
     
     p_n_mat[:, t] = np.array(p_i_n)
     return p_i_n
@@ -197,7 +211,7 @@ discretization = 1
 T = 1
 timesteps = T * discretization
 mu = 0.01
-n = 100 # unopt time/it > 3 sec
+n = 1000 # unopt time/it > 3 sec
 
 p = np.zeros((n, timesteps))
 
@@ -211,13 +225,15 @@ sigma_tilde = np.random.uniform(0, 0.2, n)
 X_0 = np.array(c) # Make sure to review if correct.
 
 # Construct sigma array:
-sigma = [min(np.sqrt(2 * kappa[i] * c[i]), sigma_tilde[i]) for i in range(n)]
+sigma = np.array([min(np.sqrt(2 * kappa[i] * c[i]), sigma_tilde[i]) for i in range(n)])
 
 # Construct gamma array:
-gamma = [np.sqrt(kappa[i]**2 + (2 * sigma[i]**2)) for i in range(n)]
+gamma = np.array([np.sqrt(kappa[i]**2 + (2 * sigma[i]**2)) for i in range(n)])
 
 # Beta:
 beta = np.random.uniform(0, 0.01, (n, n)) / 10.0 # TODO IS THIS LEGIT?
+idx = np.arange(n)
+beta[idx, idx] = np.zeros_like(idx)
 
 n_samples = 100 
 mu_ct = []
