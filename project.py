@@ -1,8 +1,7 @@
 import numpy as np
 import math
-from tqdm import tqdm
 
-T = 1
+T = 5
 n = 100 # unopt time/it > 3 sec
 
 #p = np.zeros((n, timesteps))
@@ -127,7 +126,6 @@ def generate_Mt(t, I):
 def p_n(t, state_B, theta, cached=False):
     rates = p_i_n(t, state_B, cached=cached)
     res = np.sum(rates)
-    assert(res < theta)
     return res
 
 # JCS
@@ -185,7 +183,6 @@ for _ in tqdm(range(1000)):
 variance_mc = [np.var(np.array(samples) >= cutoff) for cutoff in range(0, 20)]
 distr = [np.mean(np.array(samples) >= cutoff) for cutoff in range(0, 20)]
 print(distr)
-
 exit()'''
 
 '''
