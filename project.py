@@ -1,28 +1,6 @@
 import numpy as np
 import math
-
-discretization = 1
-T = 1
-timesteps = T * discretization
-mu = 0.01
-n = 100
-
-#theta = (1. / timesteps) * math.ceil(mu * n)
-
-# Parameters for calculation of p_i_n: Note that c is defined as theta in the paper cited by KG >:(
-kappa = np.random.uniform(0.5, 1.5, n) / 3.0
-c = np.random.uniform(0.001, 0.051, n) / 3.0 # Note: this adjusts the units of time for c from quarters to months
-sigma_tilde = np.random.uniform(0, 0.2, n)
-X_0 = np.array(c) # Make sure to review if correct.
-
-# Construct sigma array:
-sigma = [min(np.sqrt(2 * kappa[i] * c[i]), sigma_tilde[i]) for i in range(n)]
-
-# Construct gamma array:
-gamma = [np.sqrt(kappa[i]**2 + (2 * sigma[i]**2)) for i in range(n)]
-
-# Beta:
-beta = np.random.uniform(0, 0.01, (n, n)) / 10.0 # TODO IS THIS LEGIT?
+from tqdm import tqdm
 
 def monte_carlo_sample():
     def cond_surv_fn(t_start, t_end):
@@ -61,7 +39,7 @@ def sample_S(theta):
     while len(event_times) < n:
         delta = np.random.exponential(1. / theta)
         t += math.ceil(delta)
-        event_times.append(t)
+        event_times += [t]
     return event_times
 
 def sample_I(event_times, theta):
@@ -70,9 +48,10 @@ def sample_I(event_times, theta):
     # returns T-vector with values between 1 and n. Element is the id of the firm that defaults at that timestep. 0 if no one defaults
 
     M = np.zeros((n, timesteps))
+    I = np.zeros(timesteps)
     #print('Sampling I')
     for i, Sm in enumerate(event_times):
-        if Sm > timesteps:
+        if Sm >= timesteps:
             break
         #print((i, Sm))
         if i == 0:
@@ -82,20 +61,19 @@ def sample_I(event_times, theta):
         q = q_i_n(Sm, prev_state, theta) / q_n(Sm, prev_state, theta)
         transition_idx = np.argmax(np.random.multinomial(1, q))
         M[transition_idx, Sm:] = np.ones_like(M[transition_idx, Sm:])
-
-    I = np.zeros_like(M[0])
-    for i in range(M.shape[0]):
-        default_time = np.argmax(M[i])
-        if default_time != 0:
-            I[default_time] = int(i + 1)
+        I[Sm] = transition_idx + 1
     return I
 
 ###
 
 # FDE
 
+p_n_mat = None
 # Create an array, of size n (number of firms):
-def p_i_n(t, Mt):
+def p_i_n(t, Mt, cached=False):
+    global p_n_mat
+    if cached:
+        return p_n_mat[:, t]
     #Mt = np.random.randint(0, 1, 100)
     #t /= 12.
     p_i_n = np.zeros(n)
@@ -114,6 +92,8 @@ def p_i_n(t, Mt):
             if i != j:
                 third += beta[i, j] * Mt[j]
         p_i_n[i] = (first_num / first_denom) + (second_num / second_denom) + third
+    
+    p_n_mat[:, t] = np.array(p_i_n)
     return p_i_n
 
 
@@ -121,7 +101,7 @@ def p_i_n(t, Mt):
 
 
 # Sum of individual p_i_n (at a given time-step):
-def p_n(t, state_B):
+def p_n(t, state_B, cached=False):
     rates = p_i_n(t, state_B)
     #print(np.sum(rates))
     return np.sum(rates)
@@ -167,8 +147,8 @@ def D_T(I):
     M = I_to_M(I)
     D = 0
     for s in np.squeeze(np.argwhere(I != 0), axis=1):
-        D += np.log(timesteps*p_n(*Ms_minus(s, M)))
-    D -= sum(p_n(int(s), M[:, int(s)])*delta for s in np.arange(0, timesteps, delta))
+        D += np.log(timesteps*p_n(*Ms_minus(s, M), cached=True))
+    D -= sum(p_n(int(s), M[:, int(s)], True)*delta for s in np.arange(0, timesteps, delta))
     return D
 
 def Z_T(Sn, I, theta):
@@ -183,6 +163,15 @@ def Z_T(Sn, I, theta):
 # generate event times using poisson
 # for each Sm draw Im
 # check if its a rare event, if so, generate Z_T and define as Yn
+
+
+def sample_Z(theta):
+    global p_n_mat
+    p_n_mat = np.zeros((n, timesteps))
+    S = sample_S(theta)
+    I = sample_I(S, theta)
+    ct, z = Z_T(S,I,theta)
+    return ct, z
 
 '''
 samples = []
@@ -204,25 +193,48 @@ for _ in range(n_samples):
 print(samples)
 '''
 
+discretization = 1
+T = 1
+timesteps = T * discretization
+mu = 0.01
+n = 100 # unopt time/it > 3 sec
 
-n_samples = 100
+p = np.zeros((n, timesteps))
+
+
+#theta = (1. / timesteps) * math.ceil(mu * n)
+
+# Parameters for calculation of p_i_n: Note that c is defined as theta in the paper cited by KG >:(
+kappa = np.random.uniform(0.5, 1.5, n) / 3.0
+c = np.random.uniform(0.001, 0.051, n) / 3.0 # Note: this adjusts the units of time for c from quarters to months
+sigma_tilde = np.random.uniform(0, 0.2, n)
+X_0 = np.array(c) # Make sure to review if correct.
+
+# Construct sigma array:
+sigma = [min(np.sqrt(2 * kappa[i] * c[i]), sigma_tilde[i]) for i in range(n)]
+
+# Construct gamma array:
+gamma = [np.sqrt(kappa[i]**2 + (2 * sigma[i]**2)) for i in range(n)]
+
+# Beta:
+beta = np.random.uniform(0, 0.01, (n, n)) / 10.0 # TODO IS THIS LEGIT?
+
+n_samples = 100 
 mu_ct = []
 mu_zt = []
-for i in range(20):
+for i in tqdm(range(20)):
     mu = 0.01 * (i+1)
     samples = []
     counts = []
     theta = (1. / timesteps) * math.ceil(mu * n)
     for _ in range(n_samples):
-        S = sample_S(theta)
-        I = sample_I(S, theta)
-        ct, z = Z_T(S,I,theta)
+        ct, z = sample_Z(theta)
         samples += [z]
         counts += [ct]
     counts = np.array(counts)
     samples = np.array(samples)
     print(1.0 / (np.mean(samples) * T))
-    print(len(np.argwhere(counts>=np.array((mu*n))))/n_samples)
+    #print(len(np.argwhere(counts>=np.array((mu*n))))/n_samples)
     mu_ct += [len(np.argwhere(counts>=np.array((mu*n))))/n_samples]
     mu_zt += [1.0 / (np.mean(samples) * T)]
 print(mu_ct)
