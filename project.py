@@ -204,7 +204,7 @@ mu_ct = []
 mu_zt = []
 VaR = []
 variance_is = []
-for idx in tqdm(range(1, 5 + 1)):
+for idx in tqdm(range(1, 10 + 1)):
     i = idx * n / 100
     samples = []
     counts = []
