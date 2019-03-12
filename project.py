@@ -2,7 +2,7 @@ import numpy as np
 import math
 from tqdm import tqdm
 
-discretization = 1
+discretization = 12
 T = 1
 timesteps = T * discretization
 mu = 0.01
@@ -14,8 +14,8 @@ p = np.zeros((n, timesteps))
 #theta = (1. / timesteps) * math.ceil(mu * n)
 
 # Parameters for calculation of p_i_n: Note that c is defined as theta in the paper cited by KG >:(
-kappa = np.random.uniform(0.5, 1.5, n) / 3.0
-c = np.random.uniform(0.001, 0.051, n) / 3.0 # Note: this adjusts the units of time for c from quarters to months
+kappa = np.random.uniform(0.5, 1.5, n) / 4.0
+c = np.random.uniform(0.001, 0.051, n) / 5.0 # Note: this adjusts the units of time for c from quarters to months
 sigma_tilde = np.random.uniform(0, 0.2, n)
 X_0 = np.array(c) # Make sure to review if correct.
 
@@ -29,6 +29,8 @@ gamma = np.array([np.sqrt(kappa[i]**2 + (2 * sigma[i]**2)) for i in range(n)])
 beta = np.random.uniform(0, 0.01, (n, n)) / 10.0 # TODO IS THIS LEGIT?
 idx = np.arange(n)
 beta[idx, idx] = np.zeros_like(idx)
+
+p_n_mat = np.zeros((n, timesteps))
 
 first_num = np.array([4 * X_0 * gamma**2 * np.exp(gamma * t) for t in range(timesteps)]).T
 first_denom = np.array([(gamma - kappa + (gamma + kappa) * np.exp(gamma * t)) ** 2 for t in range(timesteps)]).T
@@ -101,7 +103,6 @@ def sample_I(event_times, theta):
 
 # FDE
 
-p_n_mat = None
 # Create an array, of size n (number of firms):
 def p_i_n(t, Mt, cached=False):
     global p_n_mat
@@ -216,7 +217,7 @@ def sample_Z(theta):
 
 '''
 samples = []
-for _ in tqdm(range(100)):
+for _ in tqdm(range(1000)):
     samples += [monte_carlo_sample()]
 variance_mc = [np.var(np.array(samples) >= cutoff) for cutoff in range(0, 20)]
 distr = [np.mean(np.array(samples) >= cutoff) for cutoff in range(0, 20)]
@@ -254,8 +255,8 @@ for i in tqdm(range(20)):
     samples = np.array(samples)
     mu_ct += [float(len(counts >= mu * n)) / n_samples]
     mu_zt += [np.mean(samples)]
-    VaR += [np.quantile(samples),0.975)]
-    variance_is += [np.var(samples))]
+    VaR += [np.quantile(samples,0.975)]
+    variance_is += [np.var(samples)]
     
 print(mu_ct)
 print(mu_zt)
