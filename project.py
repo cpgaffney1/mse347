@@ -218,6 +218,7 @@ def sample_Z(theta):
 samples = []
 for _ in tqdm(range(100)):
     samples += [monte_carlo_sample()]
+variance_mc = [np.var(np.array(samples) >= cutoff) for cutoff in range(0, 20)]
 distr = [np.mean(np.array(samples) >= cutoff) for cutoff in range(0, 20)]
 print(distr)
     
@@ -237,6 +238,8 @@ print(samples)
 n_samples = 100
 mu_ct = []
 mu_zt = []
+VaR = []
+variance_is = []
 for i in tqdm(range(20)):
     mu = 0.01 * (i+1)
     samples = []
@@ -251,5 +254,11 @@ for i in tqdm(range(20)):
     samples = np.array(samples)
     mu_ct += [float(len(counts >= mu * n)) / n_samples]
     mu_zt += [np.mean(samples)]
+    VaR += [np.quantile(samples),0.975)]
+    variance_is += [np.var(samples))]
+    
 print(mu_ct)
 print(mu_zt)
+print(VaR)
+variance_reduction = variance_mc/variance_is
+print(variance_reduction)
