@@ -6,6 +6,7 @@ T = 1
 n = 100 # unopt time/it > 3 sec
 
 #p = np.zeros((n, timesteps))
+np.random.seed(42)
 
 
 # Parameters for calculation of p_i_n: Note that c is defined as theta in the paper cited by KG >:(
@@ -107,7 +108,7 @@ def p_i_n(t, Mt, cached=False):
     p_i_n = np.zeros(n)
     third = np.matmul(beta, Mt)
     first_num = 4 * X_0 * gamma**2 * np.exp(gamma * t)
-    first_denom = gamma - kappa + (gamma + kappa) * np.exp(gamma * t) ** 2
+    first_denom = (gamma - kappa + (gamma + kappa) * np.exp(gamma * t)) ** 2
     second_num = 2 * kappa * c * (np.exp(gamma * t) - 1)
     second_denom = gamma - kappa + (gamma + kappa) * np.exp(gamma * t)
 
@@ -119,15 +120,13 @@ def p_i_n(t, Mt, cached=False):
     return p_i_n
 
 
-# In[23]:
 def generate_Mt(t, I):
     return (I <= t).astype('float')
-
 
 # Sum of individual p_i_n (at a given time-step):
 def p_n(t, state_B, cached=False):
     rates = p_i_n(t, state_B)
-    #print(np.sum(rates))
+    print(np.sum(rates))
     return np.sum(rates)
 
 # JCS
