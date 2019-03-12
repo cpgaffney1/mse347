@@ -1,8 +1,7 @@
 import numpy as np
 import math
-from tqdm import tqdm
 
-discretization = 12
+discretization = 1
 T = 1
 timesteps = T * discretization
 mu = 0.01
@@ -11,8 +10,8 @@ n = 100
 #theta = (1. / timesteps) * math.ceil(mu * n)
 
 # Parameters for calculation of p_i_n: Note that c is defined as theta in the paper cited by KG >:(
-kappa = np.random.uniform(0.5, 1.5, n)/4.
-c = np.random.uniform(0.001, 0.051, n)/4.# Note: this adjusts the units of time for c from quarters to months
+kappa = np.random.uniform(0.5, 1.5, n) / 3.0
+c = np.random.uniform(0.001, 0.051, n) / 3.0 # Note: this adjusts the units of time for c from quarters to months
 sigma_tilde = np.random.uniform(0, 0.2, n)
 X_0 = np.array(c) # Make sure to review if correct.
 
@@ -23,7 +22,7 @@ sigma = [min(np.sqrt(2 * kappa[i] * c[i]), sigma_tilde[i]) for i in range(n)]
 gamma = [np.sqrt(kappa[i]**2 + (2 * sigma[i]**2)) for i in range(n)]
 
 # Beta:
-beta = np.random.uniform(0, 0.01, (n, n)) / 1. # TODO IS THIS LEGIT?
+beta = np.random.uniform(0, 0.01, (n, n)) / 10.0 # TODO IS THIS LEGIT?
 
 def monte_carlo_sample():
     def cond_surv_fn(t_start, t_end):
@@ -209,7 +208,7 @@ print(samples)
 n_samples = 100
 mu_ct = []
 mu_zt = []
-for i in tqdm(range(20)):
+for i in range(20):
     mu = 0.01 * (i+1)
     samples = []
     counts = []
@@ -222,10 +221,9 @@ for i in tqdm(range(20)):
         counts += [ct]
     counts = np.array(counts)
     samples = np.array(samples)
-    print(np.mean(samples))
+    print(1.0 / (np.mean(samples) * T))
     print(len(np.argwhere(counts>=np.array((mu*n))))/n_samples)
     mu_ct += [len(np.argwhere(counts>=np.array((mu*n))))/n_samples]
-    mu_zt += [np.mean(samples)]
+    mu_zt += [1.0 / (np.mean(samples) * T)]
 print(mu_ct)
 print(mu_zt)
-
