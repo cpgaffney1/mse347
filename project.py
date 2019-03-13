@@ -1,7 +1,8 @@
 import numpy as np
 import math
+from tqdm import tqdm
 
-T = 5
+
 n = 100 # unopt time/it > 3 sec
 
 #p = np.zeros((n, timesteps))
@@ -59,7 +60,7 @@ def monte_carlo_sample():
     return len(event_times)
 
 
-def sample_S(theta):
+def sample_S(theta,T):
     # CPG
     # event times up to T with rate theta
     #print('Sampling S')
@@ -73,7 +74,7 @@ def sample_S(theta):
         event_times += [t]
     return event_times
 
-def sample_I(event_times, theta):
+def sample_I(event_times, theta,T):
     # CPG
     # call q_i_n and q_n
     # returns T-vector with values between 1 and n. Element is the id of the firm that defaults at that timestep. 0 if no one defaults
@@ -145,7 +146,7 @@ def q_n(t, state_b, theta):
 
 # JCS
 
-def D_T(I, Sm, theta): # We assume I is sorted in increasing default times.
+def D_T(I, Sm, theta,T): # We assume I is sorted in increasing default times.
     delta = 0.01
     D = np.log(T * p_n(0, generate_Mt(0, I), theta, cached=True))
     for i in range(len(Sm)):
@@ -157,9 +158,9 @@ def D_T(I, Sm, theta): # We assume I is sorted in increasing default times.
     return D
 
 
-def Z_T(I, Sm, theta): # We assume I is sorted in increasing default times.
+def Z_T(I, Sm, theta,T): # We assume I is sorted in increasing default times.
     CT = np.sum(generate_Mt(T, I))
-    D = D_T(I, Sm, theta)
+    D = D_T(I, Sm, theta,T)
     return CT, np.exp(T * theta - (CT * np.log(T * theta)) + D)
 
 # JCS
@@ -168,12 +169,12 @@ def Z_T(I, Sm, theta): # We assume I is sorted in increasing default times.
 # check if its a rare event, if so, generate Z_T and define as Yn
 
 
-def sample_Z(theta):
+def sample_Z(theta,T):
     #global p_n_mat
     #p_n_mat = np.zeros((n, timesteps))
-    S = sample_S(theta)
-    I = sample_I(S, theta)
-    ct, z = Z_T(I, S, theta)
+    S = sample_S(theta,T)
+    I = sample_I(S, theta,T)
+    ct, z = Z_T(I, S, theta,T)
     return ct, z
 
 
@@ -194,8 +195,7 @@ for _ in range(n_samples):
     samples += [Z_T(S,I)]
 print(samples)
 '''
-if __name__ == '__main__':
-    n_samples = 100
+def run_is(T,n_samples):
     mu_ct = []
     mu_zt = []
     VaR = []
@@ -206,7 +206,7 @@ if __name__ == '__main__':
         counts = []
         theta = (1. / T) * cutoff
         for _ in range(n_samples):
-            ct, z = sample_Z(theta)
+            ct, z = sample_Z(theta,T)
             z = z * (ct >= cutoff)
             samples += [z]
             counts += [ct]
@@ -220,5 +220,4 @@ if __name__ == '__main__':
     print("mu_ct = {}".format(mu_ct))
     print("mu_zt = {}".format(mu_zt))
     print("VaR = {}".format(VaR))
-    variance_reduction = variance_mc/variance_is
-    print(variance_reduction)
+    return mu_ct,mu_zt,VaR,variance_is

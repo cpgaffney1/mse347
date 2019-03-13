@@ -1,12 +1,12 @@
 import numpy as np
-from project import p_i_n, T, n
+from project import p_i_n,n
 from tqdm import tqdm
 
 np.random.seed(123)
 
 K = 1
 
-def sim():
+def sim(T):
     t = 0
     k = 0
     event_times = [0]
@@ -37,12 +37,14 @@ def sim():
     return np.sum(M)
 
 
-def main():
+def run_mc(T,samples):
     print('--------------------------- T = {} ------------------------------'.format(T))
     print('n = {}'.format(n))
-    dist = np.array([sim() for _ in range(1000000)])
+    dist = np.array([sim(T) for _ in range(samples)])
+    rare_event = []
+    variance_mc = []
     for mu in tqdm(np.arange(0.01, 0.21, 0.01)):
+        rare_event += [np.mean(dist >= mu * n)]
+        variance_mc += [np.var(dist >= mu * n)]
         print('mu = {:0.2f}: {}'.format(mu, np.mean(dist >= mu * n)))
-
-if __name__ == '__main__':
-    main()
+    return rare_event, variance_mc

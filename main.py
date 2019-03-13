@@ -31,16 +31,17 @@ def no_ci(zt,mc,sd_is,sd_mc,T):
     plt.clf()
 
 
-T = [1,3,5]
-samples_mc = 100000
-samples_is = 100
+if __name__ == '__main__':
+    T = [1,3,5]
+    samples_mc = 1000000
+    samples_is = 10000
 
-for t in T:
-    print('Year {}-----'.format(t))
-    ct,zt,VaR,variance_is = run_is(t,samples_is)
-    mc_est, variance_mc = run_mc(t,samples_mc)
-    compare_estimates(zt,mc_est,np.sqrt(variance_is),np.sqrt(variance_mc),t)
-    no_ci(zt, mc_est, np.sqrt(variance_is), np.sqrt(variance_mc), t)
-    print('Variance Ratio: {}'.format(np.divide(variance_mc,variance_is)))
-    print('Variance IS: {}'.format(variance_is))
-    print('Variance MC: {}'.format(variance_mc))
+    for t in T:
+        print('Year {}-----'.format(t))
+        ct,zt,VaR,variance_is = run_is(t,samples_is)
+        mc_est, variance_mc = run_mc(t,samples_mc)
+        compare_estimates(zt,mc_est,np.sqrt(variance_is),np.sqrt(variance_mc),t)
+        no_ci(zt, mc_est, np.sqrt(variance_is), np.sqrt(variance_mc), t)
+        print('Variance Ratio: {}'.format(np.divide(variance_mc,variance_is)))
+        print('Variance IS: {}'.format(variance_is))
+        print('Variance MC: {}'.format(variance_mc))
