@@ -44,7 +44,11 @@ def run_mc(T,samples):
     rare_event = []
     variance_mc = []
     for mu in tqdm(np.arange(0.01, 0.21, 0.01)):
-        rare_event += [np.mean(dist >= mu * n)]
-        variance_mc += [np.var(dist >= mu * n)]
-        print('mu = {:0.2f}: {}'.format(mu, np.mean(dist >= mu * n)))
+        mu_dist = (dist >= mu * n)
+        rare_event.append(np.mean(mu_dist))
+        variance_mc.append(np.var(mu_dist))
+
+        print('mu = {:0.2f}: {}, var = {}'.format(mu,
+        rare_event[-1], variance_mc[-1]))
+
     return rare_event, variance_mc

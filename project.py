@@ -212,12 +212,13 @@ def run_is(T,n_samples):
             counts += [ct]
         counts = np.array(counts)
         samples = np.array(samples)
-        mu_ct += [float(np.count_nonzero(counts >= cutoff)) / n_samples]
-        mu_zt += [np.mean(samples)]
-        VaR += [np.quantile(samples,0.975)]
-        variance_is += [np.var(samples)]
+        mu_ct.append(float(np.count_nonzero(counts >= cutoff)) / n_samples)
+        mu_zt.append(np.mean(samples))
+        VaR.append(np.percentile(samples, 95))
+        variance_is.append(np.var(samples))
 
     print("mu_ct = {}".format(mu_ct))
     print("mu_zt = {}".format(mu_zt))
     print("VaR = {}".format(VaR))
-    return mu_ct,mu_zt,VaR,variance_is
+    print("variance = {}".format(variance_is))
+    return mu_ct, mu_zt, VaR, variance_is
