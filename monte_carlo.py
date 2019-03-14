@@ -1,5 +1,5 @@
 import numpy as np
-from project import p_i_n,n
+from project import p_i_n,n, gen_bootstrap
 from tqdm import tqdm
 
 np.random.seed(123)
@@ -46,8 +46,7 @@ def run_mc(T,samples):
     for mu in tqdm(np.arange(0.01, 0.21, 0.01)):
         mu_dist = (dist >= mu * n)
         rare_event.append(np.mean(mu_dist))
-        variance_mc.append(np.var(mu_dist))
-
+        variance_mc.append(gen_bootstrap(mu_dist))
         print('mu = {:0.2f}: {}, var = {}'.format(mu,
         rare_event[-1], variance_mc[-1]))
 

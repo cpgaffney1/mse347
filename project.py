@@ -177,25 +177,15 @@ def sample_Z(theta,T):
     ct, z = Z_T(I, S, theta,T)
     return ct, z
 
+def gen_bootstrap(distribution):
+    num_bootstraps = 100
+    estimators = []
+    for _ in range(num_bootstraps):
+        estimators.append(np.mean(np.random.choice(distribution,len(distribution))))
+    return np.var(estimators)
+    #return np.percentile(estimators,2.5),np.percentile(estimators,97.5)
 
-'''samples = []
-for _ in tqdm(range(1000)):
-    samples += [monte_carlo_sample()]
-variance_mc = [np.var(np.array(samples) >= cutoff) for cutoff in range(0, 20)]
-distr = [np.mean(np.array(samples) >= cutoff) for cutoff in range(0, 20)]
-print(distr)
-exit()'''
-
-'''
-n_samples = 10
-samples = []
-for _ in range(n_samples):
-    S = sample_S()
-    I = sample_I(S)
-    samples += [Z_T(S,I)]
-print(samples)
-'''
-def run_is(T,n_samples):
+def run_is(T,n_samples,):
     mu_ct = []
     mu_zt = []
     VaR = []
@@ -215,10 +205,29 @@ def run_is(T,n_samples):
         mu_ct.append(float(np.count_nonzero(counts >= cutoff)) / n_samples)
         mu_zt.append(np.mean(samples))
         VaR.append(np.percentile(samples, 95))
-        variance_is.append(np.var(samples))
+        variance_is.append(gen_bootstrap(samples))
 
     print("mu_ct = {}".format(mu_ct))
     print("mu_zt = {}".format(mu_zt))
     print("VaR = {}".format(VaR))
     print("variance = {}".format(variance_is))
     return mu_ct, mu_zt, VaR, variance_is
+
+
+'''samples = []
+for _ in tqdm(range(1000)):
+    samples += [monte_carlo_sample()]
+variance_mc = [np.var(np.array(samples) >= cutoff) for cutoff in range(0, 20)]
+distr = [np.mean(np.array(samples) >= cutoff) for cutoff in range(0, 20)]
+print(distr)
+exit()'''
+
+'''
+n_samples = 10
+samples = []
+for _ in range(n_samples):
+    S = sample_S()
+    I = sample_I(S)
+    samples += [Z_T(S,I)]
+print(samples)
+'''
