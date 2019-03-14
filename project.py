@@ -182,8 +182,8 @@ def gen_bootstrap(distribution):
     estimators = []
     for _ in range(num_bootstraps):
         estimators.append(np.mean(np.random.choice(distribution,len(distribution))))
-    return np.var(estimators)
-    #return np.percentile(estimators,2.5),np.percentile(estimators,97.5)
+    #return np.var(estimators)
+    return np.percentile(estimators,2.5),np.percentile(estimators,97.5)
 
 def run_is(T,n_samples,):
     mu_ct = []
